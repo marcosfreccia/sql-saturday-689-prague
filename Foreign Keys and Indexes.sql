@@ -77,6 +77,12 @@ FROM Sales.Orders o
 
 
 
+
+
+
+
+
+
 /*
 
 What about if we change the source of column?
@@ -111,7 +117,8 @@ SELECT ol.OrderID,
        ol.OrderLineID
 FROM Sales.Orders o
     JOIN Sales.OrderLines AS ol
-        ON ol.OrderID = o.OrderID;
+        ON ol.OrderID = o.OrderID
+		WHERE o.OrderID = 850
 
 
 

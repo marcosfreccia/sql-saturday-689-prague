@@ -16,6 +16,7 @@ DROP INDEX IF EXISTS ix_Person_LastName ON dbo.Person
 
 
 
+
 DBCC FREEPROCCACHE
 DBCC DROPCLEANBUFFERS
 DBCC FREESESSIONCACHE
@@ -38,10 +39,20 @@ ON p.BusinessEntityID = cu.PersonID
 WHERE p.FirstName = 'Bryon' AND p.LastName = 'Ewing'
 
 
+
+
+
+
+
 -- Some Tips!
 -- Avoid at most HASH JOINS
+   -- Something is wrong here.. Usually non sorted outputs. Non indexed table. Big result set
+
 -- You can live with MERGE JOINS
+   -- Merges are good. When you see then, usually means that you have columns indexes and your plan is getting better
+
 -- Always pursue a NESTED LOOP
+   -- Perform joins against small data sets.
 
 
 
@@ -71,13 +82,6 @@ WHERE p.FirstName = 'Bryon' AND p.LastName = 'Ewing'
 
 CREATE NONCLUSTERED INDEX ix_SalesOrderHeader_CustomerID ON dbo.SalesOrderHeader_pagecomp(CustomerID) WITH(MAXDOP=2,DATA_COMPRESSION=PAGE)
 
-
-
-DBCC FREEPROCCACHE
-DBCC DROPCLEANBUFFERS
-DBCC FREESESSIONCACHE
-DBCC FREESYSTEMCACHE('ALL')
-CHECKPOINT
 
 
 SELECT soh.PurchaseOrderNumber,soh.OrderDate,soh.SubTotal,soh.TaxAmt,soh.Freight,soh.TotalDue FROM dbo.SalesOrderHeader_pagecomp AS soh
