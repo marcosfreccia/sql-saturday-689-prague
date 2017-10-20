@@ -19,6 +19,7 @@ SELECT TOP(0) * INTO SalesOrders001 FROM Sales.Orders
 
 GO
 
+
 /*
 
 Part 01: Avoiding High Updated Columns
@@ -275,11 +276,17 @@ WHERE c.DeliveryMethodID = 3
 DROP INDEX IF EXISTS IX_SalesCustomers_DeliveryMethodID ON Sales.Customers
 
 
+
+
 /*
 
-Restore Database
+Cleaning Up
 
 */
+
+DROP TABLE IF EXISTS dbo.SalesOrders001
+DROP TABLE IF EXISTS dbo.SalesOrders002
+
 
 USE [master]
 RESTORE DATABASE [WideWorldImporters] FROM  DISK = N'I:\MSSQL\Backup\WideWorldImporters_20171016.bak' WITH  FILE = 1,REPLACE,  NOUNLOAD,  STATS = 5
