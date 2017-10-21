@@ -131,6 +131,7 @@ GO
 Checking the fragmentation
 
 */
+
 DECLARE @Object_id INT = (SELECT object_id FROM sys.tables WHERE name = 'SalesOrders002' )
 
 
@@ -158,17 +159,9 @@ DROP TABLE IF EXISTS dbo.SalesOrders002
 
 
 
-
-
 /*
 
-Creating good NonClustered Indexes
-
-*/
-
-/*
-
-Selectivity
+Selectivity. Think about that before!
 
 */
 
@@ -191,6 +184,10 @@ FROM Sales.Customers;
 Creating both NONCLUSTERED INDEXES
 
 */
+DROP INDEX IF EXISTS IX_SalesCustomers_CustomerName ON Sales.Customers
+GO
+DROP INDEX IF EXISTS IX_SalesCustomers_DeliveryMethodID ON Sales.Customers
+
 CREATE NONCLUSTERED INDEX IX_SalesCustomers_CustomerName ON Sales.Customers(CustomerName)
 GO
 CREATE NONCLUSTERED INDEX IX_SalesCustomers_DeliveryMethodID ON Sales.Customers(DeliveryMethodID) 
@@ -288,5 +285,174 @@ DROP TABLE IF EXISTS dbo.SalesOrders001
 DROP TABLE IF EXISTS dbo.SalesOrders002
 
 
-USE [master]
-RESTORE DATABASE [WideWorldImporters] FROM  DISK = N'I:\MSSQL\Backup\WideWorldImporters_20171016.bak' WITH  FILE = 1,REPLACE,  NOUNLOAD,  STATS = 5
+--USE [master]
+--RESTORE DATABASE [WideWorldImporters] FROM  DISK = N'I:\MSSQL\Backup\WideWorldImporters_20171016.bak' WITH  FILE = 1,REPLACE,  NOUNLOAD,  STATS = 5
+
+
+
+/*
+DEMO 003: COMPRESSION?
+@Database: sqlsat_prague
+
+*/
+
+
+
+USE sqlsat_prague
+GO
+SET STATISTICS IO ON
+SET STATISTICS TIME ON
+
+DROP INDEX IF EXISTS ix_Customer_PersonID ON dbo.Customer
+DROP INDEX IF EXISTS ix_Person_FirstName ON dbo.Person
+DROP INDEX IF EXISTS ix_SalesOrderHeader_CustomerID ON dbo.SalesOrderHeader
+DROP INDEX IF EXISTS ix_Person_FirstName ON dbo.Person
+DROP INDEX IF EXISTS ix_Person_LastName ON dbo.Person
+
+
+
+
+DBCC FREEPROCCACHE
+DBCC DROPCLEANBUFFERS
+DBCC FREESESSIONCACHE
+DBCC FREESYSTEMCACHE('ALL')
+CHECKPOINT
+
+
+SELECT soh.PurchaseOrderNumber,soh.OrderDate,soh.SubTotal,soh.TaxAmt,soh.Freight,soh.TotalDue FROM dbo.SalesOrderHeader AS soh
+JOIN dbo.Customer AS cu
+ON cu.CustomerID = soh.CustomerID
+JOIN dbo.Person AS p
+ON p.BusinessEntityID = cu.PersonID
+WHERE p.FirstName = 'Bryon' AND p.LastName = 'Ewing'
+
+
+
+
+
+
+
+-- Some Tips!
+-- Avoid at most HASH JOINS
+   -- Something is wrong here.. Usually non sorted outputs. Non indexed table. Big result set, Statistics not up to date
+
+-- You can live with MERGE JOINS
+   -- Merges are good. When you see then, usually means that you have columns indexes and your plan is getting better
+
+-- Always pursue a NESTED LOOP
+   -- Perform joins against small data sets.
+
+
+
+
+
+
+
+
+
+
+-- Can we improve it even more?
+
+
+
+CREATE NONCLUSTERED INDEX [ix_Person_FirstName_LastName] ON [dbo].[Person] ([FirstName],[LastName]) WITH(MAXDOP=1,DATA_COMPRESSION=PAGE)
+GO
+
+
+
+SELECT soh.PurchaseOrderNumber,soh.OrderDate,soh.SubTotal,soh.TaxAmt,soh.Freight,soh.TotalDue FROM dbo.SalesOrderHeader AS soh
+JOIN dbo.Customer AS cu
+ON cu.CustomerID = soh.CustomerID
+JOIN dbo.Person AS p
+ON p.BusinessEntityID = cu.PersonID
+WHERE p.FirstName = 'Bryon' AND p.LastName = 'Ewing'
+
+GO
+
+
+
+
+
+
+/*
+
+
+What about this below query? Is the index created before still good?
+
+
+*/
+
+SELECT soh.PurchaseOrderNumber,soh.OrderDate,soh.SubTotal,soh.TaxAmt,soh.Freight,soh.TotalDue FROM dbo.SalesOrderHeader AS soh
+JOIN dbo.Customer AS cu
+ON cu.CustomerID = soh.CustomerID
+JOIN dbo.Person AS p
+ON p.BusinessEntityID = cu.PersonID
+WHERE p.FirstName = 'Bryon' --AND p.LastName = 'Ewing'
+
+GO
+
+
+/*
+
+What about now?
+
+
+*/
+
+SELECT soh.PurchaseOrderNumber,soh.OrderDate,soh.SubTotal,soh.TaxAmt,soh.Freight,soh.TotalDue FROM dbo.SalesOrderHeader AS soh
+JOIN dbo.Customer AS cu
+ON cu.CustomerID = soh.CustomerID
+JOIN dbo.Person AS p
+ON p.BusinessEntityID = cu.PersonID
+--WHERE p.FirstName = 'Bryon' 
+WHERE p.LastName = 'Ewing'
+
+GO
+
+
+
+/*
+
+Let me show you Index Intersection
+
+*/
+
+DROP INDEX [ix_Person_FirstName_LastName] ON [dbo].[Person]
+
+
+
+GO
+
+CREATE NONCLUSTERED INDEX [ix_Person_FirstName] ON [dbo].[Person] ([FirstName]) WITH(MAXDOP=1)
+GO
+
+
+CREATE NONCLUSTERED INDEX [ix_Person_LastName] ON [dbo].[Person] ([LastName]) WITH(MAXDOP=1)
+GO
+
+SELECT soh.PurchaseOrderNumber,soh.OrderDate,soh.SubTotal,soh.TaxAmt,soh.Freight,soh.TotalDue FROM dbo.SalesOrderHeader AS soh
+JOIN dbo.Customer AS cu
+ON cu.CustomerID = soh.CustomerID
+JOIN dbo.Person AS p
+ON p.BusinessEntityID = cu.PersonID
+WHERE p.FirstName = 'Bryon' --AND p.LastName = 'Ewing'
+
+GO
+
+
+/*
+
+What about now?
+
+
+*/
+
+SELECT soh.PurchaseOrderNumber,soh.OrderDate,soh.SubTotal,soh.TaxAmt,soh.Freight,soh.TotalDue FROM dbo.SalesOrderHeader AS soh
+JOIN dbo.Customer AS cu
+ON cu.CustomerID = soh.CustomerID
+JOIN dbo.Person AS p
+ON p.BusinessEntityID = cu.PersonID
+--WHERE p.FirstName = 'Bryon' 
+WHERE p.LastName = 'Ewing'
+
+GO
