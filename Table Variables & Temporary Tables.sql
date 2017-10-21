@@ -69,13 +69,6 @@ GO
 
 
 
-DBCC FREEPROCCACHE
-DBCC DROPCLEANBUFFERS
-DBCC FREESESSIONCACHE
-DBCC FREESYSTEMCACHE('ALL')
-CHECKPOINT
-
-
 DECLARE @PriceAdjust TABLE(ProductID INT,ProductName VARCHAR(100),ProductNumber NVARCHAR(25),CurrentPrice MONEY,NewPrice MONEY,ChangedDate DATETIME)
 
 INSERT INTO @PriceAdjust
@@ -161,16 +154,6 @@ Let's create a physical table to test it
 
 
 
-SET STATISTICS IO ON
-
-
-DBCC FREEPROCCACHE
-DBCC DROPCLEANBUFFERS
-DBCC FREESESSIONCACHE
-DBCC FREESYSTEMCACHE('ALL')
-CHECKPOINT
-
-
 create TABLE PriceAdjust(ProductID INT,ProductName VARCHAR(100),ProductNumber NVARCHAR(25),CurrentPrice MONEY,NewPrice MONEY,ChangedDate DATETIME)
 
 INSERT INTO PriceAdjust
@@ -216,6 +199,38 @@ SELECT ProductID,Name,ProductNumber,StandardCost AS CurrentPrice, StandardCost +
 SELECT pa.ProductName,p.Color,p.StandardCost,pa.NewPrice FROM @PriceAdjust AS PA
 JOIN dbo.Product AS p
 ON p.ProductID = pa.ProductID
+
+
+
+
+/*
+
+Can we force something in the Table Variable?
+
+*/
+
+
+
+DECLARE @PriceAdjust TABLE(ProductID INT,ProductName VARCHAR(100),ProductNumber NVARCHAR(25),CurrentPrice MONEY,NewPrice MONEY,ChangedDate DATETIME)
+
+INSERT INTO @PriceAdjust
+(
+    ProductID,
+	ProductName,
+    ProductNumber,
+    CurrentPrice,
+    NewPrice,
+    ChangedDate
+)
+SELECT ProductID,Name,ProductNumber,StandardCost AS CurrentPrice, StandardCost + (StandardCost * 0.1) AS NewPrice,GETDATE() AS ChangedDate FROM dbo.Product
+
+
+
+SELECT pa.ProductName,p.Color,p.StandardCost,pa.NewPrice FROM @PriceAdjust AS PA
+JOIN dbo.Product AS p
+ON p.ProductID = pa.ProductID
+OPTION(RECOMPILE)
+
 
 
 
