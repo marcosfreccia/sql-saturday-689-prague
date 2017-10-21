@@ -290,12 +290,6 @@ DROP TABLE IF EXISTS dbo.SalesOrders002
 
 
 
-/*
-DEMO 003: COMPRESSION?
-@Database: sqlsat_prague
-
-*/
-
 
 
 USE sqlsat_prague
